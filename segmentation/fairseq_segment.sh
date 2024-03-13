@@ -5,6 +5,10 @@ readonly BEAM=$4
 readonly GOLD_PATH=$5
 
 decode() {
+    if [ ! -d "$DATA_BIN" ]; then
+        echo "Creating $DATA_BIN"
+        mkdir "$DATA_BIN"
+    fi
     local -r CP="$1"; shift
     local -r MODE="$1"; shift
     # Fairseq insists on calling the dev-set "valid"; hack around this.
@@ -24,6 +28,10 @@ decode() {
 	--batch-size 256 \
         > "${OUT}"
     # Extracts the predictions into a TSV file.
+    if [ ! -f "${OUT}" ]; then
+        echo "The last command failed to generate ${OUT}. Please check output for error."
+        exit 1
+    fi
     cat "${OUT}" | grep -P '^H-'  | cut -c 3- | sort -n -k 1 | awk -F "\t" '{print $NF}' | python detokenize.py > $PRED
     cut -f 1 $GOLD_PATH | paste - $PRED > "${CP}/${MODE}-${BEAM}.guess"
     # Applies the evaluation script to the TSV file.
