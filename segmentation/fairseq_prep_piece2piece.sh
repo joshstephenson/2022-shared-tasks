@@ -1,7 +1,21 @@
-readonly DATA_PATH=$1  # example: 2022-shared-tasks/data/eng.word
-readonly OUT_PATH=$2
-readonly VOCAB=$3
-shift 3
+#!/usr/bin/env bash
+
+if [ -z "$1" ]; then
+    echo "Please provide a language name {ces|eng|fra|hun|ita|lat|mon|rus|spa}"
+    exit 1
+else
+    readonly LANG="$1"; shift
+    readonly DATA_PATH="2022SegmentationST/data/${LANG}.word"
+    readonly OUT_PATH="data/preprocessed/${LANG}"
+    if [ ! -d "$OUT_PATH" ]; then
+        mkdir -p "$OUT_PATH"
+    fi
+    readonly VOCAB=8000 #(underexplored)
+    echo "DATA_PATH: ${DATA_PATH}"
+    echo "OUT_PATH: ${OUT_PATH}"
+    echo "VOCAB: ${VOCAB}"
+fi
+
 
 bin() {
     tail -n +4 "${OUT_PATH}/src.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${OUT_PATH}/src.fairseq.vocab"

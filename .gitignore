@@ -1,4 +1,4 @@
 segmentation/virtual
-segmentation/out
+segmentation/data
 segmentation/models
 segmentation/.DS_Store

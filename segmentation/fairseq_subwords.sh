@@ -1,7 +1,15 @@
-readonly DATA_BIN=$1
-readonly MODEL_PATH=$2
-readonly ENTMAX_ALPHA=$3
-readonly BEAM=$4
+#!/usr/bin/env bash
+
+if [ -z "$1" ]; then
+    echo "Please provide a language name {ces|eng|fra|hun|ita|lat|mon|rus|spa}"
+    exit 1
+else
+    readonly LANG="$1"; shift
+    readonly DATA_BIN="data/preprocessed/${LANG}"
+    readonly MODEL_PATH="data/models/${LANG}"
+fi
+readonly ENTMAX_ALPHA=1.5
+readonly BEAM=5
 
 decode() {
     local -r CP="$1"; shift

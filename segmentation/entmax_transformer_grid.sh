@@ -1,27 +1,41 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-DATA_BIN=$1  # e.g. "new-data-bin/char2piece/ces.word-1000"
-NAME=$2  # e.g. "ces-v1000-2022-04-13"
-GOLD_PATH=$3
-GRID_LOC=$4
-shift 4
+if [ -z "$1" ]; then
+    echo "Please provide a language name {ces|eng|fra|hun|ita|lat|mon|rus|spa}"
+    exit 1
+else
+    LANG="$1"; shift
+    DATA_BIN="data/preprocessed/${LANG}"
+    DATE_STR=$(date "+%d-%m-%Y")
+    NAME="${LANG}-${DATE_STR}"
+    echo "NAME: ${NAME}"
+    GOLD_PATH="2022SegmentationST/data/${LANG}.word.test.gold.tsv"
+    echo "GOLD PATH: ${GOLD_PATH}"
+    GRID_LOC="data/models/${LANG}"
+    if [ ! -d "$GRID_LOC" ]; then
+        mkdir -p "$GRID_LOC"
+    fi
+    echo "GRID_LOC: ${GRID_LOC}"
+fi
 
 ENTMAX_ALPHA=1.5
 LR=0.001
 
 grid() {
+    echo "foo: $@"
     local -r EMB="$1"; shift
     local -r HID="$1"; shift
     local -r LAYERS="$1" ; shift
     local -r HEADS="$1" ; shift
     for WARMUP in 4000 8000 ; do
         for DROPOUT in 0.1 0.3 ; do
-            if [ -z "$@" ]; then
-                echo "You must supply a batch number. Try 8192."
-                exit 1
+            BATCHES=$@
+            if [ -z "$BATCHES" ]; then
+                BATCHES=8192
+                echo "No batch size supplied. Setting to 8192."
             fi
-            for BATCH in $@ ; do
-                MODEL_DIR="${GRID_LOC}/${NAME}-entmax-minlev-${EMB}-${HID}-${LAYERS}-${HEADS}-${BATCH}-${ENTMAX_ALPHA}-${LR}-${WARMUP}-${DROPOUT}"
+            for BATCH in $BATCHES ; do
+                MODEL_DIR="${GRID_LOC}/${NAME}-entmax-minloss-${EMB}-${HID}-${LAYERS}-${HEADS}-${BATCH}-${ENTMAX_ALPHA}-${LR}-${WARMUP}-${DROPOUT}"
                 if [ ! -f "${MODEL_DIR}/dev-5.results" ]
                 then
                     bash fairseq_train_entmax_transformer.sh $DATA_BIN $NAME $EMB $HID $LAYERS $HEADS $BATCH $ENTMAX_ALPHA $LR $WARMUP $DROPOUT $GRID_LOC
