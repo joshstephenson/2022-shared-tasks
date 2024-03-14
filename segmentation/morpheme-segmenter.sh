@@ -44,7 +44,7 @@ bin() {
         --target-lang="tgt" \
         --trainpref="${PROCESSED_INPUT_PATH}/train" \
         --validpref="${PROCESSED_INPUT_PATH}/dev" \
-        --testpref="${PROCESSED_INPUT_PATH}/test.gold" \
+        --testpref="${PROCESSED_INPUT_PATH}/dev" \
         --tokenizer=space \
         --thresholdsrc=1 \
         --thresholdtgt=1 \

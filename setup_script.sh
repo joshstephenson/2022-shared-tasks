@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Clone necessary repositories
-git clone --recursive-submodules https://github.com/joshstephenson/2022-shared-tasks
+git clone --recurse-submodules https://github.com/joshstephenson/2022-shared-tasks
 
 # Start a Python virtual environment
 python -m venv virtual
