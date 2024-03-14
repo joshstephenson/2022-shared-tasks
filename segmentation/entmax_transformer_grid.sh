@@ -20,6 +20,7 @@ fi
 
 ENTMAX_ALPHA=1.5
 LR=0.001
+BEAM=5
 
 grid() {
     echo "foo: $@"
@@ -42,10 +43,12 @@ grid() {
                     if [ $? -ne 0 ]; then
                         exit 1
                     fi
-                    bash fairseq_segment.sh $DATA_BIN $MODEL_DIR 1.5 5 $GOLD_PATH
+                    bash fairseq_segment.sh $DATA_BIN $MODEL_DIR $ENTMAX_ALPHA $BEAM $GOLD_PATH
                     if [ $? -ne 0 ]; then
                         echo "fairseq_segment.sh failed."
                         exit 1
+                    else
+                        echo "Trained data output to: ${MODEL_DIR}"
                     fi
                 else
                     echo "skipping ${MODEL_DIR}"
