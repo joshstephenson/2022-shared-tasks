@@ -1,3 +1,3 @@
 [submodule "segmentation/2022SegmentationST"]
 	path = segmentation/2022SegmentationST
-	url = git@github.com:sigmorphon/2022SegmentationST.git
+	url = https://github.com/sigmorphon/2022SegmentationST
