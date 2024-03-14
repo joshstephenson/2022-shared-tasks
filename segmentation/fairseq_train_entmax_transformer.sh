@@ -25,7 +25,7 @@ readonly WARMUP_INIT_LR=1e-7
 readonly PATIENCE=5
 readonly ACTIVATION_FN=relu
 
-MODEL_DIR="${GRID_LOC}/${NAME}-entmax-minlev-${EMB}-${HID}-${LAYERS}-${HEADS}-${BATCH}-${ENTMAX_ALPHA}-${LR}-${WARMUP}-${DROPOUT}"
+MODEL_DIR="${GRID_LOC}/${NAME}-entmax-minloss-${EMB}-${HID}-${LAYERS}-${HEADS}-${BATCH}-${ENTMAX_ALPHA}-${LR}-${WARMUP}-${DROPOUT}"
 
 train() {
     local -r CP="$1"; shift

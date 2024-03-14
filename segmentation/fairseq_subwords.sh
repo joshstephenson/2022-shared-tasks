@@ -7,7 +7,7 @@ else
     readonly LANG="$1";
     readonly MODEL_NAME="$2"
     if [ -z "$2" ]; then
-        echo "Please provide a model name (hun-14-03-2024-entmax-minlev-256-1024-6-8-8192-1.5-0.001-4000-0.1/)"
+        echo "Please provide a model name (hun-14-03-2024-entmax-minloss-256-1024-6-8-8192-1.5-0.001-4000-0.1/)"
         exit 1
     fi
     shift 2
