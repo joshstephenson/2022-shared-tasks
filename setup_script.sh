@@ -11,5 +11,5 @@ source virtual/bin/activate
 cd 2022-shared-tasks/segmentation/
 pip install -r ./requirements.txt
 
-echo "Run `source ./bin/activate` and then proceed with training"
+echo "Run 'source ./bin/activate' and then proceed with training"
 
