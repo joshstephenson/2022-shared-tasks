@@ -2,7 +2,6 @@
 
 # Clone necessary repositories
 git clone --recursive-submodules https://github.com/joshstephenson/2022-shared-tasks
-#git clone https://github.com/joshstephenson/fairseq-entmax
 
 # Start a Python virtual environment
 python -m venv virtual
@@ -12,4 +11,5 @@ source virtual/bin/activate
 cd 2022-shared-tasks/segmentation/
 pip install -r ./requirements.txt
 
+echo "Run `source ./bin/activate` and then proceed with training"
 

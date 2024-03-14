@@ -6,8 +6,7 @@ if [ -z "$1" ]; then
 else
     LANG="$1"; shift
     DATA_BIN="data/preprocessed/${LANG}"
-    DATE_STR=$(date "+%d-%m-%Y")
-    NAME="${LANG}-${DATE_STR}"
+    NAME="${LANG}"
     echo "NAME: ${NAME}"
     GOLD_PATH="2022SegmentationST/data/${LANG}.word.test.gold.tsv"
     echo "GOLD PATH: ${GOLD_PATH}"
@@ -23,7 +22,6 @@ LR=0.001
 BEAM=5
 
 grid() {
-    echo "foo: $@"
     local -r EMB="$1"; shift
     local -r HID="$1"; shift
     local -r LAYERS="$1" ; shift

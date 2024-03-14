@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+
+readonly PREPROCESSED_DIR="data/preprocessed"
+readonly MODEL_DIR="data/models"
+readonly ENTMAX_ALPHA=1.5
+readonly LR=0.001
+readonly BEAM=5
+readonly BATCHES=8192
+readonly VOCAB=8000 #(underexplored)
+
+if [ -z "$1" ]; then
+    echo "Please provide a language name {ces|eng|fra|hun|ita|lat|mon|rus|spa}."
+    exit 1
+else
+    readonly LANG="$1"; shift
+    readonly INPUT_PATH="2022SegmentationST/data/${LANG}.word"
+    readonly PROCESSED_INPUT_PATH="${PREPROCESSED_DIR}/${LANG}"
+
+    GOLD_PATH="2022SegmentationST/data/${LANG}.word.test.gold.tsv"
+    GRID_LOC="data/models/${LANG}"
+
+    if [ ! -d "$PROCESSED_INPUT_PATH" ]; then
+        mkdir -p "$PROCESSED_INPUT_PATH"
+    fi
+
+    if [ ! -d "$GRID_LOC" ]; then
+        mkdir -p "$GRID_LOC"
+    fi
+
+    echo "GOLD PATH: ${GOLD_PATH}"
+    echo "GRID_LOC: ${GRID_LOC}"
+    echo "INPUT_PATH: ${INPUT_PATH}"
+    echo "PROCESSED_INPUT_PATH: ${PROCESSED_INPUT_PATH}"
+    echo "VOCAB: ${VOCAB}"
+fi
+
+# For preprocessing
+bin() {
+    tail -n +4 "${PROCESSED_INPUT_PATH}/src.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${PROCESSED_INPUT_PATH}/src.fairseq.vocab"
+    tail -n +4 "${PROCESSED_INPUT_PATH}/tgt.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${PROCESSED_INPUT_PATH}/tgt.fairseq.vocab"
+    # todo: fix testpref when it is available
+    fairseq-preprocess \
+        --source-lang="src" \
+        --target-lang="tgt" \
+        --trainpref="${PROCESSED_INPUT_PATH}/train" \
+        --validpref="${PROCESSED_INPUT_PATH}/dev" \
+        --testpref="${PROCESSED_INPUT_PATH}/test.gold" \
+        --tokenizer=space \
+        --thresholdsrc=1 \
+        --thresholdtgt=1 \
+        --srcdict "${PROCESSED_INPUT_PATH}/src.fairseq.vocab" \
+        --tgtdict "${PROCESSED_INPUT_PATH}/tgt.fairseq.vocab" \
+        --destdir="${PROCESSED_INPUT_PATH}"
+}
+
+# For training
+grid() {
+    local -r EMB="$1"; shift
+    local -r HID="$1"; shift
+    local -r LAYERS="$1" ; shift
+    local -r HEADS="$1" ; shift
+    for WARMUP in 4000 8000 ; do
+        for DROPOUT in 0.1 0.3 ; do
+            for BATCH in $BATCHES ; do
+                THIS_MODEL_DIR="${GRID_LOC}/${LANG}-entmax-minloss-${EMB}-${HID}-${LAYERS}-${HEADS}-${BATCH}-${ENTMAX_ALPHA}-${LR}-${WARMUP}-${DROPOUT}"
+                FILENAME="${THIS_MODEL_DIR}/dev-5.results"
+                if [ ! -f "$FILENAME" ]
+                then
+                    bash fairseq_train_entmax_transformer.sh $PROCESSED_INPUT_PATH $LANG $EMB $HID $LAYERS $HEADS $BATCH $ENTMAX_ALPHA $LR $WARMUP $DROPOUT $GRID_LOC
+                    if [ $? -ne 0 ]; then
+                        exit 1
+                    fi
+                    bash fairseq_segment.sh $PROCESSED_INPUT_PATH $THIS_MODEL_DIR $ENTMAX_ALPHA $BEAM $GOLD_PATH
+                    if [ $? -ne 0 ]; then
+                        echo "fairseq_segment.sh failed."
+                        exit 1
+                    else
+                        echo "Trained data output to: ${FILENAME}"
+                    fi
+                else
+                    echo "${FILENAME} found. Not re-running."
+                fi
+            done
+        done
+    done
+}
+
+train() {
+    grid 256 1024 6 8
+    grid 512 2048 6 8
+}
+
+decode() {
+    local -r CP="$1"; shift
+    local -r MODE="$1"; shift
+    # Fairseq insists on calling the dev-set "valid"; hack around this.
+    local -r FAIRSEQ_MODE="${MODE/dev/valid}"
+    CHECKPOINT="${CP}/checkpoint_best.pt"
+    OUT="${CP}/${MODE}-${BEAM}.subwords.out"
+    PRED="${CP}/${MODE}-${BEAM}.subwords.pred"
+    # Makes raw predictions.
+    fairseq-generate \
+        "${DATA_BIN}" \
+        --source-lang="src" \
+        --target-lang="tgt" \
+        --path="${CHECKPOINT}" \
+        --gen-subset="${FAIRSEQ_MODE}" \
+        --beam="${BEAM}" \
+        --alpha="${ENTMAX_ALPHA}" \
+	--batch-size 256 \
+        > "${OUT}"
+    # Extracts the predictions into a TSV file.
+    cat "${OUT}" | grep -P '^H-'  | cut -c 3- | sort -n -k 1 | awk -F "\t" '{print $NF}' > $PRED
+}
+
+
+if [ "$(ls -A $PROCESSED_INPUT_PATH)" ]; then
+    echo "PROCESSED DATA found in ${PREPROCESSED_INPUT_PATH}. Proceeding to training..."
+    train
+else
+    python scripts/tokenize.py "${INPUT_PATH}.train.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --out-dir $PROCESSED_INPUT_PATH --split train $@
+    python scripts/tokenize.py "${INPUT_PATH}.dev.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --existing-src-spm "${PROCESSED_INPUT_PATH}/src" --existing-tgt-spm "${PROCESSED_INPUT_PATH}/tgt" --out-dir $PROCESSED_INPUT_PATH --split dev --shared-data
+    bin
+    if [ $? -ne 0 ]; then
+        echo "Data Processing failed. Do not proceed to training."
+    else
+        echo "Data Processing succeeded. Proceeding to training."
+        train
+        if [ $? -ne 0 ]; then
+            echo "Training failed. Do not proceed to decoding."
+        else
+            echo "Training succeeded. Proceeding to decoding."
+            decode $MODEL_PATH "test.gold"
+        fi
+    fi
+fi
