@@ -53,7 +53,13 @@ decode() {
     cat "${OUT}" | grep -P '^H-'  | cut -c 3- | sort -n -k 1 | awk -F "\t" '{print $NF}' | python detokenize.py > $PRED
     cut -f 1 $GOLD_PATH | paste - $PRED > "${CP}/${MODE}-${BEAM}.guess"
     # Applies the evaluation script to the TSV file.
-    python 2022SegmentationST/evaluation/evaluate.py --gold $GOLD_PATH --guess "${CP}/${MODE}-${BEAM}.guess" > "${CP}/${MODE}-${BEAM}.results"
+    RESULTS_FILE="${CP}/${MODE}-${BEAM}.results"
+    python 2022SegmentationST/evaluation/evaluate.py --gold $GOLD_PATH --guess "${CP}/${MODE}-${BEAM}.guess" > "${RESULTS_FILE}"
+    if [ $? -ne 0 ]; then
+        echo "Results of model evaluation written to: ${RESULTS_FILE}"
+    else
+        echo "Failed to evaluate model."
+    fi
 }
 
 decode $MODEL_PATH test

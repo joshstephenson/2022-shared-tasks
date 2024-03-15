@@ -1,1 +1,1 @@
-fairseq_subwords.sh
+fairseq_segment.sh

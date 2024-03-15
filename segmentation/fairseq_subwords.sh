@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-if [ -z "$1" ]; then
-    echo "Please provide a language name {ces|eng|fra|hun|ita|lat|mon|rus|spa}"
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Please provide a language name {ces|eng|fra|hun|ita|lat|mon|rus|spa} and model name (hun-entmax-minloss-256-1024-6-8-8192-1.5-0.001-4000-0.1/)"
     exit 1
-else
-    readonly LANG="$1"; shift
-    readonly DATA_BIN="data/preprocessed/${LANG}"
-    readonly MODEL_PATH="data/models/${LANG}/${MODEL_NAME}"
 fi
+readonly LANG="$1"; shift
+readonly MODEL_NAME="$1"; shift
+readonly DATA_BIN="data/preprocessed/${LANG}"
+readonly MODEL_PATH="data/models/${LANG}/${MODEL_NAME}"
 readonly ENTMAX_ALPHA=1.5
 readonly BEAM=5
 
