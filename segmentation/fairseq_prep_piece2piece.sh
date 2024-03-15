@@ -26,7 +26,7 @@ bin() {
         --target-lang="tgt" \
         --trainpref="${OUT_PATH}/train" \
         --validpref="${OUT_PATH}/dev" \
-        --testpref="${OUT_PATH}/dev" \
+        --testpref="${OUT_PATH}/test.gold" \
         --tokenizer=space \
         --thresholdsrc=1 \
         --thresholdtgt=1 \
@@ -36,6 +36,10 @@ bin() {
 }
 
 python scripts/tokenize.py "${DATA_PATH}.train.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --out-dir $OUT_PATH --split train $@
+if [ $? -ne 0 ]; then echo "Tokenizing train failed" && exit 1 ; fi
 python scripts/tokenize.py "${DATA_PATH}.dev.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --existing-src-spm "${OUT_PATH}/src" --existing-tgt-spm "${OUT_PATH}/tgt" --out-dir $OUT_PATH --split dev --shared-data
+if [ $? -ne 0 ]; then echo "Tokenizing dev failed" && exit 1 ; fi
+python scripts/tokenize.py "${DATA_PATH}.test.gold.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --existing-src-spm "${OUT_PATH}/src" --existing-tgt-spm "${OUT_PATH}/tgt" --out-dir $OUT_PATH --split test --shared-data
+if [ $? -ne 0 ]; then echo "Tokenizing test.gold failed" && exit 1 ; fi
 bin
 
