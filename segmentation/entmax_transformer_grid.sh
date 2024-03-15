@@ -5,7 +5,7 @@ if [ -z "$1" ]; then
     exit 1
 else
     LANG="$1"; shift
-    DATA_BIN="2022SegmentationST/data/${LANG}.word"
+    DATA_BIN="data/preprocessed/${LANG}"
     NAME="${LANG}"
     echo "NAME: ${NAME}"
     GOLD_PATH="2022SegmentationST/data/${LANG}.word.test.gold.tsv"
@@ -37,11 +37,13 @@ grid() {
                 MODEL_DIR="${GRID_LOC}/${NAME}-entmax-minloss-${EMB}-${HID}-${LAYERS}-${HEADS}-${BATCH}-${ENTMAX_ALPHA}-${LR}-${WARMUP}-${DROPOUT}"
                 if [ ! -f "${MODEL_DIR}/dev-5.results" ]
                 then
+                    echo "Found model ${MODEL_DIR}/dev-5.results. Continuing to next step: fairseq_train_entmax_transformer.sh"
                     bash fairseq_train_entmax_transformer.sh $DATA_BIN $NAME $EMB $HID $LAYERS $HEADS $BATCH $ENTMAX_ALPHA $LR $WARMUP $DROPOUT $GRID_LOC
                     if [ $? -ne 0 ]; then
                         echo "fairseq_train_entmax_transformer.sh failed"
                         exit 1
                     fi
+                    echo "training completed. Continuing to next step: fairseq_segment.sh"
                     bash fairseq_segment.sh $DATA_BIN $MODEL_DIR $ENTMAX_ALPHA $BEAM $GOLD_PATH
                     if [ $? -ne 0 ]; then
                         echo "fairseq_segment.sh failed."
