@@ -13,3 +13,4 @@ segmentation/.DS_Store
 .idea/modules.xml
 .idea/Morpheme-2022-shared-tasks.iml
 .idea/vcs.xml
+segmentation/data.tar.gz
