@@ -1,21 +1,39 @@
-readonly DATA_BIN=$1
-readonly MODEL_PATH=$2
-readonly ENTMAX_ALPHA=$3
-readonly BEAM=$4
-readonly GOLD_PATH=$5
+#!/usr/bin/env bash
+
+#if [ -z "$1" ] || [ -z "$2" ]; then
+#    echo "Please provide a language name {ces|eng|fra|hun|ita|lat|mon|rus|spa} and model dir path (data/models/hun/hun-entmax-minloss-256-1024-6-8-8192-1.5-0.001-4000-0.1/)"
+#    exit 1
+#fi
+readonly DATA_BIN=$1; shift
+readonly MODEL_PATH=$1; shift
+#readonly DATA_BIN=$1
+#readonly MODEL_PATH=$2
+readonly ENTMAX_ALPHA=$1; shift
+readonly BEAM=$1; shift
+readonly GOLD_PATH=$1; shift
+echo "FROM fairseq_segment.sh:
+DATA_BIN: ${DATA_BIN}
+MODEL_PATH: ${MODEL_PATH}
+ENTMAX_ALPHA: ${ENTMAX_ALPHA}
+BEAM: ${BEAM}
+GOLD_PATH: ${GOLD_PATH}
+====================================================
+"
 
 decode() {
     if [ ! -d "$DATA_BIN" ]; then
         echo "Creating $DATA_BIN"
-        mkdir "$DATA_BIN"
+        mkdir -p "$DATA_BIN"
     fi
     local -r CP="$1"; shift
     local -r MODE="$1"; shift
     # Fairseq insists on calling the dev-set "valid"; hack around this.
     local -r FAIRSEQ_MODE="${MODE/dev/valid}"
+    echo "FAIRSEQ_MODE: ${FAIRSEQ_MODE}"
     CHECKPOINT="${CP}/checkpoint_best.pt"
     OUT="${CP}/${MODE}-${BEAM}.out"
     PRED="${CP}/${MODE}-${BEAM}.pred"
+    echo "PRED: ${PRED}"
     # Makes raw predictions.
     fairseq-generate \
         "${DATA_BIN}" \
@@ -38,4 +56,4 @@ decode() {
     python 2022SegmentationST/evaluation/evaluate.py --gold $GOLD_PATH --guess "${CP}/${MODE}-${BEAM}.guess" > "${CP}/${MODE}-${BEAM}.results"
 }
 
-decode $MODEL_PATH dev
+decode $MODEL_PATH test

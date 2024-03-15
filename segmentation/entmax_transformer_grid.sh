@@ -5,7 +5,7 @@ if [ -z "$1" ]; then
     exit 1
 else
     LANG="$1"; shift
-    DATA_BIN="data/preprocessed/${LANG}"
+    DATA_BIN="2022SegmentationST/data/${LANG}.word"
     NAME="${LANG}"
     echo "NAME: ${NAME}"
     GOLD_PATH="2022SegmentationST/data/${LANG}.word.test.gold.tsv"
@@ -39,6 +39,7 @@ grid() {
                 then
                     bash fairseq_train_entmax_transformer.sh $DATA_BIN $NAME $EMB $HID $LAYERS $HEADS $BATCH $ENTMAX_ALPHA $LR $WARMUP $DROPOUT $GRID_LOC
                     if [ $? -ne 0 ]; then
+                        echo "fairseq_train_entmax_transformer.sh failed"
                         exit 1
                     fi
                     bash fairseq_segment.sh $DATA_BIN $MODEL_DIR $ENTMAX_ALPHA $BEAM $GOLD_PATH
