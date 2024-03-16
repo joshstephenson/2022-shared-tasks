@@ -38,13 +38,12 @@ fi
 bin() {
     tail -n +4 "${PROCESSED_INPUT_PATH}/src.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${PROCESSED_INPUT_PATH}/src.fairseq.vocab"
     tail -n +4 "${PROCESSED_INPUT_PATH}/tgt.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${PROCESSED_INPUT_PATH}/tgt.fairseq.vocab"
-    # todo: fix testpref when it is available
     fairseq-preprocess \
         --source-lang="src" \
         --target-lang="tgt" \
         --trainpref="${PROCESSED_INPUT_PATH}/train" \
         --validpref="${PROCESSED_INPUT_PATH}/dev" \
-        --testpref="${PROCESSED_INPUT_PATH}/dev" \
+        --testpref="${PROCESSED_INPUT_PATH}/test" \
         --tokenizer=space \
         --thresholdsrc=1 \
         --thresholdtgt=1 \
@@ -75,7 +74,7 @@ grid() {
                         echo "fairseq_segment.sh failed."
                         exit 1
                     else
-                        echo "Trained data output to: ${FILENAME}"
+                        echo "Trained data written to: ${FILENAME}"
                     fi
                 else
                     echo "${FILENAME} found. Not re-running."
@@ -85,7 +84,17 @@ grid() {
     done
 }
 
-train() {
+preprocess() {
+    python scripts/tokenize.py "${INPUT_PATH}.train.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --out-dir $OUT_PATH --split train $@
+    if [ $? -ne 0 ]; then echo "Tokenizing train failed" && exit 1 ; fi
+    python scripts/tokenize.py "${INPUT_PATH}.dev.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --existing-src-spm "${OUT_PATH}/src" --existing-tgt-spm "${OUT_PATH}/tgt" --out-dir $OUT_PATH --split dev --shared-data
+    if [ $? -ne 0 ]; then echo "Tokenizing dev failed" && exit 1 ; fi
+    python scripts/tokenize.py "${INPUT_PATH}.test.gold.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --existing-src-spm "${OUT_PATH}/src" --existing-tgt-spm "${OUT_PATH}/tgt" --out-dir $OUT_PATH --split test --shared-data
+    if [ $? -ne 0 ]; then echo "Tokenizing test.gold failed" && exit 1 ; fi
+    bin
+}
+
+train_model() {
     grid 256 1024 6 8
     grid 512 2048 6 8
 }
@@ -116,21 +125,14 @@ decode() {
 
 if [ "$(ls -A $PROCESSED_INPUT_PATH)" ]; then
     echo "PROCESSED DATA found in ${PREPROCESSED_INPUT_PATH}. Proceeding to training..."
-    train
+    train_model
 else
-    python scripts/tokenize.py "${INPUT_PATH}.train.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --out-dir $PROCESSED_INPUT_PATH --split train $@
-    python scripts/tokenize.py "${INPUT_PATH}.dev.tsv" --src-tok-type spm --tgt-tok-type spm --vocab-size $VOCAB --existing-src-spm "${PROCESSED_INPUT_PATH}/src" --existing-tgt-spm "${PROCESSED_INPUT_PATH}/tgt" --out-dir $PROCESSED_INPUT_PATH --split dev --shared-data
-    bin
+    preprocess
     if [ $? -ne 0 ]; then
         echo "Data Processing failed. Do not proceed to training."
+        exit 1
     else
         echo "Data Processing succeeded. Proceeding to training."
-        train
-        if [ $? -ne 0 ]; then
-            echo "Training failed. Do not proceed to decoding."
-        else
-            echo "Training succeeded. Proceeding to decoding."
-            decode $MODEL_PATH "test.gold"
-        fi
+        train_model
     fi
 fi
