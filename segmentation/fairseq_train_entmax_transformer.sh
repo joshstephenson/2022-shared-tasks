@@ -65,6 +65,7 @@ train() {
         --save-interval="${SAVE_INTERVAL}" \
         --patience="${PATIENCE}" \
         --no-epoch-checkpoints \
+        --amp \
         #--best-checkpoint-metric "lev_dist" \
         #--eval-levenshtein \
         #--eval-bleu-remove-bpe "sentencepiece" \
