@@ -14,13 +14,13 @@ if [ -z "$1" ]; then
 else
     readonly LANG="$1"; shift
     readonly INPUT_PATH="2022SegmentationST/data/${LANG}.word"
-    readonly PROCESSED_INPUT_PATH="${PREPROCESSED_DIR}/${LANG}"
+    readonly OUT_PATH="${PREPROCESSED_DIR}/${LANG}"
 
     GOLD_PATH="2022SegmentationST/data/${LANG}.word.test.gold.tsv"
     GRID_LOC="data/models/${LANG}"
 
-    if [ ! -d "$PROCESSED_INPUT_PATH" ]; then
-        mkdir -p "$PROCESSED_INPUT_PATH"
+    if [ ! -d "$OUT_PATH" ]; then
+        mkdir -p "$OUT_PATH"
     fi
 
     if [ ! -d "$GRID_LOC" ]; then
@@ -30,26 +30,26 @@ else
     echo "GOLD PATH: ${GOLD_PATH}"
     echo "GRID_LOC: ${GRID_LOC}"
     echo "INPUT_PATH: ${INPUT_PATH}"
-    echo "PROCESSED_INPUT_PATH: ${PROCESSED_INPUT_PATH}"
+    echo "OUT_PATH: ${OUT_PATH}"
     echo "VOCAB: ${VOCAB}"
 fi
 
 # For preprocessing
 bin() {
-    tail -n +4 "${PROCESSED_INPUT_PATH}/src.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${PROCESSED_INPUT_PATH}/src.fairseq.vocab"
-    tail -n +4 "${PROCESSED_INPUT_PATH}/tgt.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${PROCESSED_INPUT_PATH}/tgt.fairseq.vocab"
+    tail -n +4 "${OUT_PATH}/src.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${OUT_PATH}/src.fairseq.vocab"
+    tail -n +4 "${OUT_PATH}/tgt.vocab" | cut -f 1 | sed "s/$/ 100/g" > "${OUT_PATH}/tgt.fairseq.vocab"
     fairseq-preprocess \
         --source-lang="src" \
         --target-lang="tgt" \
-        --trainpref="${PROCESSED_INPUT_PATH}/train" \
-        --validpref="${PROCESSED_INPUT_PATH}/dev" \
-        --testpref="${PROCESSED_INPUT_PATH}/test" \
+        --trainpref="${OUT_PATH}/train" \
+        --validpref="${OUT_PATH}/dev" \
+        --testpref="${OUT_PATH}/test" \
         --tokenizer=space \
         --thresholdsrc=1 \
         --thresholdtgt=1 \
-        --srcdict "${PROCESSED_INPUT_PATH}/src.fairseq.vocab" \
-        --tgtdict "${PROCESSED_INPUT_PATH}/tgt.fairseq.vocab" \
-        --destdir="${PROCESSED_INPUT_PATH}"
+        --srcdict "${OUT_PATH}/src.fairseq.vocab" \
+        --tgtdict "${OUT_PATH}/tgt.fairseq.vocab" \
+        --destdir="${OUT_PATH}"
 }
 
 # For training
@@ -65,11 +65,11 @@ grid() {
                 FILENAME="${THIS_MODEL_DIR}/dev-5.results"
                 if [ ! -f "$FILENAME" ]
                 then
-                    bash fairseq_train_entmax_transformer.sh $PROCESSED_INPUT_PATH $LANG $EMB $HID $LAYERS $HEADS $BATCH $ENTMAX_ALPHA $LR $WARMUP $DROPOUT $GRID_LOC
+                    bash fairseq_train_entmax_transformer.sh $OUT_PATH $LANG $EMB $HID $LAYERS $HEADS $BATCH $ENTMAX_ALPHA $LR $WARMUP $DROPOUT $GRID_LOC
                     if [ $? -ne 0 ]; then
                         exit 1
                     fi
-                    bash fairseq_segment.sh $PROCESSED_INPUT_PATH $THIS_MODEL_DIR $ENTMAX_ALPHA $BEAM $GOLD_PATH
+                    bash fairseq_segment.sh $OUT_PATH $THIS_MODEL_DIR $ENTMAX_ALPHA $BEAM $GOLD_PATH
                     if [ $? -ne 0 ]; then
                         echo "fairseq_segment.sh failed."
                         exit 1
@@ -123,8 +123,8 @@ decode() {
 }
 
 
-if [ "$(ls -A $PROCESSED_INPUT_PATH)" ]; then
-    echo "PROCESSED DATA found in ${PREPROCESSED_INPUT_PATH}. Proceeding to training..."
+if [ "$(ls -A $OUT_PATH)" ]; then
+    echo "PROCESSED DATA found in ${OUT_PATH}. Proceeding to training..."
     train_model
 else
     preprocess
